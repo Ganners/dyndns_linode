@@ -22,7 +22,7 @@ Usage
 
 or
 
-    dyndns_linode \
+    $GOPATH/bin/dyndns_linode \
       --apikey=API_KEY \
       --domain=DOMAIN \
       --subdomain=SUBDOMAIN
