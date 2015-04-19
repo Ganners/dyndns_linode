@@ -10,8 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"dyndns_linode/linode_client"
-
+	"github.com/Ganners/dyndns_linode/linode_client"
 	"github.com/sevlyar/go-daemon"
 )
 
