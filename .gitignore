@@ -1,6 +1,7 @@
 # Build ignores
 dyndns_linode
 log
+dyndns_linode.log
 pid
 
 # Vim ignores
