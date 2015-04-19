@@ -45,7 +45,7 @@ type DomainResourceList struct {
 	Errorarray []interface{} `json:"ERRORARRAY"`
 }
 
-type DomainResourceIpdate struct {
+type DomainResourceUpdate struct {
 	Action string `json:"ACTION"`
 	Data   struct {
 		Resourceid float64 `json:"ResourceID"`
@@ -123,7 +123,7 @@ func (api *API) DomainResourceUpdate(
 			fmt.Sprintf("DOMAINID=%s", strconv.Itoa(domainId)),
 			fmt.Sprintf("TARGET=%s", newTarget)})
 
-	var updateResponse DomainResourceIpdate
+	var updateResponse DomainResourceUpdate
 	err := json.Unmarshal(response, &updateResponse)
 
 	if err != nil {
