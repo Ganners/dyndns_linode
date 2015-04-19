@@ -1,0 +1,12 @@
+# Build ignores
+dyndns_linode
+log
+pid
+
+# Vim ignores
+*.swo
+*.swp
+
+# OS Ignores
+.DS_Store
+Thumbs.DB
