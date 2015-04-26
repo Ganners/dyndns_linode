@@ -102,10 +102,13 @@ func DNSUpdateDaemon(config *Config) {
 	for {
 
 		log.Println("Commencing DNS Update")
+
 		// Get the current IP address
 		ip, err := getExternalIP()
 
 		if err == nil {
+
+			log.Println("IP address retrieved successfully, continuing")
 
 			// Check if current DNS record matches
 			resourceInfo, err := fetchResourceInfo(config)
@@ -113,6 +116,7 @@ func DNSUpdateDaemon(config *Config) {
 				log.Println("Error: ", err)
 			} else {
 
+				log.Println("Successfully gathered resource info")
 				if ip != resourceInfo.ResourceIP {
 					// If it doesn't match, update it
 
@@ -123,7 +127,11 @@ func DNSUpdateDaemon(config *Config) {
 
 					if err != nil {
 						log.Println("Error: ", err)
+					} else {
+						log.Println("Successfully updated IP")
 					}
+				} else {
+					log.Println("IP address not changed, skipping update")
 				}
 			}
 		}
