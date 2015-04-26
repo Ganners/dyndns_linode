@@ -19,7 +19,7 @@ type Config struct {
 	APIKey    string
 	Domain    string
 	SubDomain string
-	PollRate  int16
+	PollRate  time.Duration
 	API       linode_client.API
 }
 
@@ -74,7 +74,12 @@ func fetchResourceInfo(config *Config) (ResourceInfo, error) {
 // online but it seems fairly reliable
 func getExternalIP() (string, error) {
 
-	resp, err := http.Get("http://echoip.com")
+	// Add a 5 second timeout
+	timeout := time.Duration(5 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+	resp, err := client.Get("http://www.echoip.com")
 
 	if err != nil {
 		log.Println("Failed to get public IP: ", err)
@@ -96,6 +101,7 @@ func DNSUpdateDaemon(config *Config) {
 
 	for {
 
+		log.Println("Commencing DNS Update")
 		// Get the current IP address
 		ip, err := getExternalIP()
 
@@ -123,7 +129,7 @@ func DNSUpdateDaemon(config *Config) {
 		}
 
 		// Sleep for the interval period
-		time.Sleep(time.Second * 30)
+		time.Sleep(time.Second * (30 * 5))
 	}
 }
 
@@ -183,6 +189,8 @@ func main() {
 		return
 	}
 	defer cntxt.Release()
+
+	log.Println("Daemon has started, commencing goroutine")
 
 	// Do the work, this gets called again and so everything on the
 	// daemon launch which is required should be re-passed through
