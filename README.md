@@ -1,5 +1,5 @@
-DynDNS implementation in Go
-===========================
+DynDNS for Linode implementation in Go
+======================================
 
 This has been developed specifically for Linode (sorry!). It runs the process in
 a daemon in the background. You'll just want to fill in the launch-daemon.sh
@@ -30,3 +30,8 @@ or
 ### To kill the process
 
     dyndns_linode --stop
+
+### To do
+
+ + [ ] Close resp.Body's (leaking memory)
+ + [ ] Make system support a config file as opposed to flags
