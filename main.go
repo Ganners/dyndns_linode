@@ -5,163 +5,38 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"syscall"
-	"time"
 
+	"github.com/BurntSushi/toml"
+	"github.com/Ganners/dyndns_linode/dns_daemon"
 	"github.com/Ganners/dyndns_linode/linode_client"
 	"github.com/sevlyar/go-daemon"
 )
 
-// Holds our Linode and application configuration
-type Config struct {
-	APIKey    string
-	Domain    string
-	SubDomain string
-	PollRate  time.Duration
-	API       linode_client.API
-}
-
-// Stores the resource information that we need to hold
-// on to
-type ResourceInfo struct {
-	ResourceID int64
-	DomainID   int
-	ResourceIP string
-}
-
-// Gets the current record from Linode
-func fetchResourceInfo(config *Config) (ResourceInfo, error) {
-
-	domainList, err := config.API.DomainList()
-	if err != nil {
-		return ResourceInfo{}, err
-	}
-
-	// Loop the list of domains to hunt for the one we want
-	for _, domainData := range domainList.Data {
-		if domainData.Domain == config.Domain {
-
-			// Grab the Domain ID
-			domainID := domainData.Domainid
-
-			// Grab the resource ID
-			resources, err := config.API.DomainResourceList(domainID)
-			if err != nil {
-				return ResourceInfo{}, err
-			}
-
-			// Loop through the resources until we find our subdomain
-			for _, domainResourceData := range resources.Data {
-
-				// Hunt for our subdomain
-				if domainResourceData.Name == config.SubDomain {
-					return ResourceInfo{
-							domainResourceData.Resourceid,
-							domainResourceData.Domainid,
-							domainResourceData.Target},
-						nil
-				}
-			}
-		}
-	}
-
-	return ResourceInfo{}, err
-}
-
-// Grabs our external IP, requires echoip.com to be
-// online but it seems fairly reliable
-func getExternalIP() (string, error) {
-
-	// Add a 5 second timeout
-	timeout := time.Duration(5 * time.Second)
-	client := http.Client{
-		Timeout: timeout,
-	}
-	resp, err := client.Get("http://www.echoip.com")
-
-	if err != nil {
-		log.Println("Failed to get public IP: ", err)
-		return "", err
-	}
-
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Failed to get public IP: ", err)
-		return "", err
-	}
-
-	defer resp.Body.Close()
-	return string(contents), nil
-}
-
-// Updates the DNS at scheduled intervals
-func DNSUpdateDaemon(config *Config) {
-
-	for {
-
-		log.Println("Commencing DNS Update")
-
-		// Get the current IP address
-		ip, err := getExternalIP()
-
-		if err == nil {
-
-			log.Println("IP address retrieved successfully, continuing")
-
-			// Check if current DNS record matches
-			resourceInfo, err := fetchResourceInfo(config)
-			if err != nil {
-				log.Println("Error: ", err)
-			} else {
-
-				log.Println("Successfully gathered resource info")
-				if ip != resourceInfo.ResourceIP {
-					// If it doesn't match, update it
-
-					err := config.API.DomainResourceUpdate(
-						int(resourceInfo.ResourceID),
-						resourceInfo.DomainID,
-						ip)
-
-					if err != nil {
-						log.Println("Error: ", err)
-					} else {
-						log.Println("Successfully updated IP")
-					}
-				} else {
-					log.Println("IP address not changed, skipping update")
-				}
-			}
-		}
-
-		// Sleep for the interval period
-		time.Sleep(time.Second * (30 * 5))
-	}
-}
-
-// Handle termination of the daemon
-func termHandler(sig os.Signal) error {
-	log.Println("Daemon has been terminated")
-	return daemon.ErrStop
-}
-
 // Launch our application
 func main() {
 
-	var apiKey string
-	var domain string
-	var subDomain string
-	flag.StringVar(&apiKey, "apikey", "", "Your Linode API Key")
-	flag.StringVar(&domain, "domain", "", "Your Linode domain name")
-	flag.StringVar(&subDomain, "subdomain", "", "Your Linode domain name")
+	var configFile string
+	var stop bool
 
-	var stop = flag.Bool("stop", false, "Terminate daemon")
+	flag.StringVar(
+		&configFile, "configFile", "", "The location of your configuration file")
+	flag.BoolVar(
+		&stop, "stop", false, "Terminate daemon")
+
 	flag.Parse()
 
+	// Read configuration and get struct
+	config, err := readConfiguration(&configFile)
+	if err != nil {
+		log.Fatal("Could not load configuration file: " + err.Error())
+		return
+	}
+	fmt.Println("%+v", config)
+
 	// Add a daemon command to stop, triggered by stop flag
-	daemon.AddCommand(daemon.BoolFlag(stop),
+	daemon.AddCommand(daemon.BoolFlag(&stop),
 		syscall.SIGTERM, termHandler)
 
 	// Create a context
@@ -173,9 +48,7 @@ func main() {
 		WorkDir:     "./",
 		Umask:       027,
 		Args: []string{"dyndns_linode",
-			fmt.Sprintf("--apikey=%s", apiKey),
-			fmt.Sprintf("--domain=%s", domain),
-			fmt.Sprintf("--subdomain=%s", subDomain)},
+			fmt.Sprintf("--configFile=%s", configFile)},
 	}
 
 	// Send commands if flags were sent
@@ -200,19 +73,39 @@ func main() {
 
 	log.Println("Daemon has started, commencing goroutine")
 
+	config.PollRate = 300
+	config.API = linode_client.NewAPI(config.ApiKey)
+
 	// Do the work, this gets called again and so everything on the
 	// daemon launch which is required should be re-passed through
 	// the context
-	go DNSUpdateDaemon(&Config{
-		APIKey:    apiKey,
-		Domain:    domain,
-		SubDomain: subDomain,
-		PollRate:  300,
-		API:       *linode_client.NewAPI(apiKey)})
+	go dns_daemon.UpdateDaemon(config)
 
 	// Log any signal errors
 	err = daemon.ServeSignals()
 	if err != nil {
 		log.Println("Error:", err)
 	}
+}
+
+// Handle termination of the daemon
+func termHandler(sig os.Signal) error {
+	log.Println("Daemon has been terminated")
+	return daemon.ErrStop
+}
+
+// Reads the configuration and parses the toml
+func readConfiguration(file *string) (*dns_daemon.Config, error) {
+
+	bytes, err := ioutil.ReadFile(*file)
+	if err != nil {
+		return &dns_daemon.Config{}, err
+	}
+
+	var conf dns_daemon.Config
+	if _, err := toml.Decode(string(bytes), &conf); err != nil {
+		return &dns_daemon.Config{}, err
+	}
+
+	return &conf, nil
 }
