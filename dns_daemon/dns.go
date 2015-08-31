@@ -9,16 +9,19 @@ import (
 	"github.com/Ganners/dyndns_linode/linode_client"
 )
 
+// Hold domains and domain data
+type Domain struct {
+	Domain    string `toml:"domain"`
+	Subdomain string `toml:"subdomain"`
+	ResInf    *ResourceInfo
+}
+
 // Holds the configuration
 type Config struct {
-	ApiKey   string
-	PollRate int
+	ApiKey   string `toml:"api_key"`
+	PollRate int    `toml:"poll_rate"`
 	API      *linode_client.API
-	Domains  []struct {
-		Domain    string
-		Subdomain string
-		ResInf    *ResourceInfo
-	}
+	Domains  []Domain `toml:"domain"`
 }
 
 // Returns bool if the config domains list contains this domain
@@ -35,9 +38,10 @@ func (c *Config) hasDomain(searchDomain string) bool {
 // Returns bool if the config domains list contains this domain
 func (c *Config) hasSubdomain(searchName string) (bool, *ResourceInfo) {
 
-	for _, domain := range c.Domains {
+	for i, domain := range c.Domains {
 		if domain.Subdomain == searchName {
-			return true, domain.ResInf
+			c.Domains[i].ResInf = &ResourceInfo{}
+			return true, c.Domains[i].ResInf
 		}
 	}
 	return false, nil
@@ -81,10 +85,11 @@ func populateResourceInfo(config *Config) error {
 
 				// Hunt for our subdomain and update (set pointer to new resource)
 				if found, resInf := config.hasSubdomain(domainResourceData.Name); found {
-					*resInf = *&ResourceInfo{
-						domainResourceData.Resourceid,
-						domainResourceData.Domainid,
-						domainResourceData.Target}
+
+					// Update pointer
+					resInf.ResourceID = domainResourceData.Resourceid
+					resInf.DomainID = domainResourceData.Domainid
+					resInf.ResourceIP = domainResourceData.Target
 				}
 			}
 			return nil
@@ -148,7 +153,6 @@ func UpdateDaemon(config *Config) {
 
 		// Range domains and check
 		for _, domain := range config.Domains {
-
 			if ip != domain.ResInf.ResourceIP {
 				// If it doesn't match, update it
 

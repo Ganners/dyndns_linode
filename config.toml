@@ -1,4 +1,4 @@
-apikey = 2SRiDe6TPL9jyzse8XEkhpeJzx9udw1Yqd5hUyAKNjCKri5PBALyyRhQflVBPGCx
+api_key = "API_KEY_HERE"
 poll_rate = 1800
 
 [[domain]]

@@ -27,14 +27,6 @@ func main() {
 
 	flag.Parse()
 
-	// Read configuration and get struct
-	config, err := readConfiguration(&configFile)
-	if err != nil {
-		log.Fatal("Could not load configuration file: " + err.Error())
-		return
-	}
-	fmt.Println("%+v", config)
-
 	// Add a daemon command to stop, triggered by stop flag
 	daemon.AddCommand(daemon.BoolFlag(&stop),
 		syscall.SIGTERM, termHandler)
@@ -73,6 +65,12 @@ func main() {
 
 	log.Println("Daemon has started, commencing goroutine")
 
+	// Read configuration and get struct
+	config, err := readConfiguration(&configFile)
+	if err != nil {
+		log.Fatal("Could not load configuration file: " + err.Error())
+		return
+	}
 	config.PollRate = 300
 	config.API = linode_client.NewAPI(config.ApiKey)
 
