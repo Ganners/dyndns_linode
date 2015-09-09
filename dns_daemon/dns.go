@@ -108,19 +108,19 @@ func getExternalIP() (string, error) {
 	client := http.Client{
 		Timeout: timeout,
 	}
-	resp, err := client.Get("http://www.echoip.com")
 
+	resp, err := client.Get("http://www.echoip.com")
 	if err != nil {
 		log.Println("Failed to get public IP: ", err)
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	contents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("Failed to get public IP: ", err)
 		return "", err
 	}
-	defer resp.Body.Close()
 
 	return string(contents), nil
 }

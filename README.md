@@ -1,12 +1,11 @@
 DynDNS for Linode implementation in Go
 ======================================
 
-This has been developed specifically for Linode (sorry!). It runs the process in
-a daemon in the background. You'll just want to fill in the launch-daemon.sh
-script and run it. Might make sense to start it up in your Init.d.
+This has been developed specifically for Linode (sorry!). It runs the
+process in a daemon.
 
-It will basically update the IP address to your current external IP on a given
-domain and sub domain.
+It will basically update the IP address to your current external IP on
+the specified domain/subdomains.
 
 Installation
 ------------
@@ -16,22 +15,10 @@ Installation
 Usage
 -----
 
-### To start
+### To start (can modify start.bash)
 
-    ./launch-daemon.sh
-
-or
-
-    $GOPATH/bin/dyndns_linode \
-      --apikey=API_KEY \
-      --domain=DOMAIN \
-      --subdomain=SUBDOMAIN
+    dyndns_linode --configFile=FILE_PATH
 
 ### To kill the process
 
     dyndns_linode --stop
-
-### To do
-
- + [ ] Close resp.Body's (leaking memory)
- + [ ] Make system support a config file as opposed to flags
