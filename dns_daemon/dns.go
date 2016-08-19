@@ -137,7 +137,7 @@ func UpdateDaemon(config *Config) {
 
 		if err != nil {
 			log.Println("Error: ", err)
-			continue
+			goto Retry
 		}
 
 		log.Println("IP address retrieved successfully, continuing")
@@ -146,7 +146,7 @@ func UpdateDaemon(config *Config) {
 		err = populateResourceInfo(config)
 		if err != nil {
 			log.Println("Error: ", err)
-			continue
+			goto Retry
 		}
 
 		log.Println("Successfully gathered resource info")
@@ -171,7 +171,8 @@ func UpdateDaemon(config *Config) {
 			}
 		}
 
+Retry:
 		// Sleep for the interval period
-		time.Sleep(time.Second * (30 * 5))
+		time.Sleep(time.Second * (60 * 5))
 	}
 }
