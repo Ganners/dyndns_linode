@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Ganners/dyndns_linode/linode_client"
@@ -99,7 +100,7 @@ func populateResourceInfo(config *Config) error {
 	return err
 }
 
-// Grabs our external IP, requires echoip.com to be
+// Grabs our external IP, requires ifconfig.co to be
 // online but it seems fairly reliable
 func getExternalIP() (string, error) {
 
@@ -109,7 +110,7 @@ func getExternalIP() (string, error) {
 		Timeout: timeout,
 	}
 
-	resp, err := client.Get("http://www.echoip.com")
+	resp, err := client.Get("https://ifconfig.co/")
 	if err != nil {
 		log.Println("Failed to get public IP: ", err)
 		return "", err
@@ -122,7 +123,11 @@ func getExternalIP() (string, error) {
 		return "", err
 	}
 
-	return string(contents), nil
+	ip := strings.TrimSpace(string(contents))
+
+	log.Println("Retrieved public IP: ", ip)
+
+	return ip, nil
 }
 
 // Updates the DNS at scheduled intervals
@@ -137,7 +142,7 @@ func UpdateDaemon(config *Config) {
 
 		if err != nil {
 			log.Println("Error: ", err)
-			continue
+			goto Retry
 		}
 
 		log.Println("IP address retrieved successfully, continuing")
@@ -146,7 +151,7 @@ func UpdateDaemon(config *Config) {
 		err = populateResourceInfo(config)
 		if err != nil {
 			log.Println("Error: ", err)
-			continue
+			goto Retry
 		}
 
 		log.Println("Successfully gathered resource info")
@@ -171,6 +176,7 @@ func UpdateDaemon(config *Config) {
 			}
 		}
 
+Retry:
 		// Sleep for the interval period
 		time.Sleep(time.Second * (30 * 5))
 	}

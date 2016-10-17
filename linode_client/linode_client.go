@@ -3,6 +3,7 @@ package linode_client
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -92,6 +93,7 @@ func (api *API) DomainList() (DomainList, error) {
 	err := json.Unmarshal(response, &domainList)
 
 	if err != nil {
+		log.Println(string(response))
 		return DomainList{}, err
 	}
 
@@ -108,6 +110,7 @@ func (api *API) DomainResourceList(domainId int) (DomainResourceList, error) {
 	err := json.Unmarshal(response, &domainResourceList)
 
 	if err != nil {
+		log.Println(string(response))
 		return DomainResourceList{}, err
 	}
 
@@ -128,6 +131,7 @@ func (api *API) DomainResourceUpdate(
 	err := json.Unmarshal(response, &updateResponse)
 
 	if err != nil {
+		log.Println(string(response))
 		return err
 	}
 
