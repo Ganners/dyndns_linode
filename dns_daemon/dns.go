@@ -178,6 +178,6 @@ func UpdateDaemon(config *Config) {
 
 Retry:
 		// Sleep for the interval period
-		time.Sleep(time.Second * (30 * 5))
+		time.Sleep(time.Second * (60 * 5))
 	}
 }
